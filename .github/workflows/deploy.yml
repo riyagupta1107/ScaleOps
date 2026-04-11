@@ -1,0 +1,62 @@
+name: ScaleOps CI/CD Pipeline
+
+# 1. The Trigger
+# This tells GitHub to run this workflow every time you push to the 'main' branch
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  # JOB 1: Continuous Integration (Testing)
+  test:
+    name: Run Quality Gate Tests
+    runs-on: ubuntu-latest # GitHub provides a temporary Ubuntu server
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20' # Matching the version used 
+
+      - name: Install Dependencies
+        run: npm ci # 'ci' is like 'install' but strictly follows package-lock.json
+
+      - name: Run Tests
+        run: npm test
+
+  
+  # JOB 2: Continuous Deployment (AWS)
+  deploy:
+    name: Deploy to AWS EC2
+    needs: test # CRITICAL: This job ONLY runs if the 'test' job passes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Execute Remote SSH Commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Navigate to your project folder
+            cd ScaleOps
+            
+            # Pull the newest code from GitHub
+            git pull origin main
+            
+            # Build the new Docker image
+            sudo docker build -t scaleops-api .
+            
+            # Stop and remove the old running container (if it exists)
+            sudo docker stop api-server || true
+            sudo docker rm api-server || true
+            
+            # Run the new container, mapping AWS port 80 to Docker port 3000
+            sudo docker run -d --name api-server -p 80:3000 scaleops-api
+            
+            # Clean up old unused docker images to save disk space
+            sudo docker image prune -f

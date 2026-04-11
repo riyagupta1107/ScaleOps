@@ -59,7 +59,7 @@ resource "aws_security_group" "web_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Egress: Allow the server to send data out to anywhere (like MongoDB)
+  # Egress: Allow the server to send data out to anywhere 
   egress {
     from_port   = 0
     to_port     = 0
@@ -91,7 +91,7 @@ data "aws_ami" "ubuntu" {
 # 7. Create the EC2 Instance (The Server)
 resource "aws_instance" "app_server" {
   ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro" # Free Tier Eligible!
+  instance_type = "t3.micro" 
   
   # Connect it to the network and firewall we built
   subnet_id              = aws_subnet.public_subnet_1.id
@@ -135,4 +135,4 @@ resource "aws_route_table" "public_rt" {
 resource "aws_route_table_association" "public_assoc" {
   subnet_id      = aws_subnet.public_subnet_1.id
   route_table_id = aws_route_table.public_rt.id
-}
+} 
